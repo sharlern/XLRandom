@@ -23,7 +23,7 @@ SOFTWARE.
 *****************************************************************************/
 
 /*********************
-ÕæËæ»úÊýÉú³É
+Generate an real random.
 *********************/
 
 #include "XLRandom.h"
@@ -33,7 +33,7 @@ namespace{
 	struct RandomStruct
 	{
 		bool run;
-		uint64_t val;
+		volatile uint64_t val;
 
 		void Init()
 		{
@@ -41,21 +41,21 @@ namespace{
 			run = true;
 		}
 	};
-	RandomStruct randomStruct;
+	RandomStruct f_randomStruct;
 }
 
 
 void XLRandom::RandomThread()
 {
-	while (randomStruct.run)
+	while (f_randomStruct.run)
 	{
-		randomStruct.val++;
+		f_randomStruct.val++;
 	}
 }
 
 XLRandom::XLRandom()
 {
-	randomStruct.Init();
+	f_randomStruct.Init();
 }
 
 XLRandom::~XLRandom()
@@ -66,17 +66,21 @@ XLRandom::~XLRandom()
 
 int XLRandom::GetRandom(uint64_t count, unsigned char* random)
 {
+	if (count < 1 || random == nullptr) {
+		return -1;
+	}
+
 	uint64_t last = 0, current = 0;
 
 	std::thread thr(RandomThread);
 
-	while ((current = randomStruct.val) == 0) {}
+	while ((current = f_randomStruct.val) == 0) {}
 	random[0] = current & 0xFF;
 	last = current;
 
 	for (uint64_t i = 1; i < count; i++) {
 		while (true) {
-			if (last < (current = randomStruct.val) ? current - last > 256 : current + UINT64_MAX - last > 256) {
+			if (last < (current = f_randomStruct.val) ? current - last > 256 : current + UINT64_MAX - last > 256) {
 				random[i] = current & 0xFF;
 				last = current;
 				break;
@@ -84,12 +88,12 @@ int XLRandom::GetRandom(uint64_t count, unsigned char* random)
 		}
 	}
 
-	randomStruct.run = false;
+	f_randomStruct.run = false;
 	thr.join();
 
-	randomStruct.Init();
+	f_randomStruct.Init();
 
-	return 0;
+	return count;
 }
 
 

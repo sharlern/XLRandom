@@ -32,7 +32,10 @@ public:
 	XLRandom();
 	~XLRandom();
 
-	static void RandomThread();
+	// 返回值：-1：入参错误；大于0：随机数个数.
 	int GetRandom(uint64_t count, unsigned char* random);
+
+private:
+	static void RandomThread();
 };
 
